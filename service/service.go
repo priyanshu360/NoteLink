@@ -1,11 +1,11 @@
-package repository
+package service
 
 import (
 	"github.com/priyanshu360/NoteLink/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type NoteStore interface {
+type NoteService interface {
 	GetAllNotes(userID primitive.ObjectID) ([]model.Note, error)
 	GetNoteByID(noteID primitive.ObjectID, userID primitive.ObjectID) (*model.Note, error)
 	CreateNote(note *model.Note) error
@@ -15,7 +15,7 @@ type NoteStore interface {
 	SearchNotes(userID primitive.ObjectID, query string) ([]model.Note, error)
 }
 
-type UserStore interface {
+type UserService interface {
 	CreateUser(user *model.User) (*model.User, error)
 	AuthenticateUser(credentials model.User) (*model.User, error)
 }

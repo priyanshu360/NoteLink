@@ -1,30 +1,29 @@
-package service
-
 // service/note.go
+package note
 
 import (
 	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/repository"
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // NoteService provides business logic related to notes
 type NoteService struct {
-	noteStore repository.Store
+	noteStore repository.NoteStore
 }
 
 // NewNoteService creates a new instance of NoteService
-func NewNoteService(noteStore repository.Store) *NoteService {
+func NewNoteService(noteStore repository.NoteStore) *NoteService {
 	return &NoteService{noteStore: noteStore}
 }
 
 // GetAllNotes retrieves all notes for a specific user
-func (s *NoteService) GetAllNotes(userID bson.ObjectId) ([]model.Note, error) {
+func (s *NoteService) GetAllNotes(userID primitive.ObjectID) ([]model.Note, error) {
 	return s.noteStore.GetAllNotes(userID)
 }
 
 // GetNoteByID retrieves a note by ID for a specific user
-func (s *NoteService) GetNoteByID(noteID bson.ObjectId, userID bson.ObjectId) (*model.Note, error) {
+func (s *NoteService) GetNoteByID(noteID primitive.ObjectID, userID primitive.ObjectID) (*model.Note, error) {
 	return s.noteStore.GetNoteByID(noteID, userID)
 }
 
@@ -39,16 +38,16 @@ func (s *NoteService) UpdateNote(note *model.Note) error {
 }
 
 // DeleteNote deletes a note by ID for a specific user
-func (s *NoteService) DeleteNote(noteID bson.ObjectId, userID bson.ObjectId) error {
+func (s *NoteService) DeleteNote(noteID primitive.ObjectID, userID primitive.ObjectID) error {
 	return s.noteStore.DeleteNote(noteID, userID)
 }
 
 // ShareNoteWithUser shares a note with another user for a specific user
-func (s *NoteService) ShareNoteWithUser(noteID bson.ObjectId, userID bson.ObjectId, targetUserID bson.ObjectId) error {
+func (s *NoteService) ShareNoteWithUser(noteID primitive.ObjectID, userID primitive.ObjectID, targetUserID primitive.ObjectID) error {
 	return s.noteStore.ShareNoteWithUser(noteID, userID, targetUserID)
 }
 
 // SearchNotes searches for notes based on keywords for a specific user
-func (s *NoteService) SearchNotes(userID bson.ObjectId, query string) ([]model.Note, error) {
+func (s *NoteService) SearchNotes(userID primitive.ObjectID, query string) ([]model.Note, error) {
 	return s.noteStore.SearchNotes(userID, query)
 }

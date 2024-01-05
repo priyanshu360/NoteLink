@@ -15,9 +15,11 @@ import (
 	"github.com/priyanshu360/NoteLink/handlers"
 	"github.com/priyanshu360/NoteLink/repository"
 	"github.com/priyanshu360/NoteLink/repository/mongo"
-	"github.com/priyanshu360/NoteLink/service"
+	"github.com/priyanshu360/NoteLink/service/note"
+	"github.com/priyanshu360/NoteLink/service/user"
+	mgo "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/time/rate"
-	"gopkg.in/mgo.v2"
 )
 
 var rateLimit = rate.NewLimiter(2, 5)
@@ -42,14 +44,48 @@ func NewServer(cfg config.ServerConfig) *APIServer {
 	}
 }
 
-func initStore() repository.Store {
-	mongoURL := "abc"
-	session, err := mgo.Dial(mongoURL)
+func initStore() repository.NoteStore {
+	mongoURL := "mongodb://localhost:27017"
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbName := "testdb"
+	collectionName := "notes"
+
+	client, err := mgo.Connect(ctx, options.Client().ApplyURI(mongoURL))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error connecting to MongoDB: ", err)
 	}
-	defer session.Close()
-	return mongo.NewMongoNoteStore(session, "db_name", "collection_name")
+
+	// Ensure the client is connected
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal("Error pinging MongoDB: ", err)
+	}
+
+	return mongo.NewMongoNoteStore(client, dbName, collectionName)
+}
+
+func initUserStore() repository.UserStore {
+	mongoURL := "mongodb://localhost:27017"
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbName := "testdb"
+	collectionName := "notes"
+
+	client, err := mgo.Connect(ctx, options.Client().ApplyURI(mongoURL))
+	if err != nil {
+		log.Fatal("Error connecting to MongoDB: ", err)
+	}
+
+	// Ensure the client is connected
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal("Error pinging MongoDB: ", err)
+	}
+
+	return mongo.NewMongoUserRepository(client, dbName, collectionName)
 }
 
 func (s *APIServer) initRoutesAndMiddleware() {
@@ -59,8 +95,8 @@ func (s *APIServer) initRoutesAndMiddleware() {
 	// Create a new instance of your note handler, assuming you have one
 
 	noteStore := initStore()
-	noteService := service.NewNoteService(noteStore)
-	noteHandler := handlers.NewNoteHandler(*noteService)
+	noteService := note.NewNoteService(noteStore)
+	noteHandler := handlers.NewNoteHandler(noteService)
 
 	// Define routes and associate them with the corresponding handler methods
 	s.router.HandleFunc("/api/notes", noteHandler.GetNotesHandler).Methods("GET")
@@ -72,6 +108,15 @@ func (s *APIServer) initRoutesAndMiddleware() {
 
 	// Uncomment and replace with your actual implementation of SearchNotesHandler
 	// s.router.HandleFunc("/api/search", handler.SearchNotesHandler(noteStore)).Methods("GET")
+
+	userStore := initUserStore()
+	userService := user.NewUserService(userStore)
+	userHandler := handlers.NewUserHandler(userService)
+
+	s.router.HandleFunc("/api/auth/signup", userHandler.CreateUserHandler).Methods("POST")
+	s.router.HandleFunc("/api/auth/login", userHandler.AuthenticateUserHandler).Methods("POST")
+
+	s.httpServer.Handler = s.router
 }
 
 func RateLimitMiddleware(next http.Handler) http.Handler {
