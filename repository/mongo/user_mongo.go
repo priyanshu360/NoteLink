@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // MongoUserRepository implements UserRepository for MongoDB
@@ -32,11 +33,20 @@ func (repo *MongoUserRepository) CreateUser(user *model.User) (*model.User, erro
 
 	user.ID = primitive.NewObjectID()
 
-	_, err := collection.InsertOne(context.TODO(), user)
+	// Hash password before storing
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	user.Password = string(hashedPassword)
+
+	_, err = collection.InsertOne(context.TODO(), user)
 	if err != nil {
 		return nil, err
 	}
 
+	// Clear password from response
+	user.Password = ""
 	return user, nil
 }
 
@@ -45,7 +55,7 @@ func (repo *MongoUserRepository) AuthenticateUser(credentials model.User) (*mode
 	collection := repo.client.Database(repo.databaseName).Collection(repo.collectionName)
 
 	var user model.User
-	filter := bson.M{"username": credentials.Username, "password": credentials.Password}
+	filter := bson.M{"username": credentials.Username}
 	err := collection.FindOne(context.TODO(), filter).Decode(&user)
 
 	if err != nil {
@@ -56,5 +66,13 @@ func (repo *MongoUserRepository) AuthenticateUser(credentials model.User) (*mode
 		return nil, err
 	}
 
+	// Compare passwords
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
+	if err != nil {
+		return nil, errors.New("invalid credentials")
+	}
+
+	// Clear password from response
+	user.Password = ""
 	return &user, nil
 }

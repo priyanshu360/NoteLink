@@ -50,6 +50,12 @@ func (h *UserHandler) AuthenticateUserHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Return user with JWT token
+	response := map[string]interface{}{
+		"user":  authenticatedUser,
+		"token": authenticatedUser.Password, // Token is temporarily stored in password field
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(authenticatedUser)
+	json.NewEncoder(w).Encode(response)
 }
