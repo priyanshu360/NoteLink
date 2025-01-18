@@ -2,6 +2,8 @@
 package note
 
 import (
+	"time"
+
 	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/repository"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -29,11 +31,15 @@ func (s *NoteService) GetNoteByID(noteID primitive.ObjectID, userID primitive.Ob
 
 // CreateNote creates a new note for a specific user
 func (s *NoteService) CreateNote(note *model.Note) error {
+	note.ID = primitive.NewObjectID()
+	note.CreatedAt = time.Now()
+	note.UpdatedAt = time.Now()
 	return s.noteStore.CreateNote(note)
 }
 
 // UpdateNote updates an existing note for a specific user
 func (s *NoteService) UpdateNote(note *model.Note) error {
+	note.UpdatedAt = time.Now()
 	return s.noteStore.UpdateNote(note)
 }
 

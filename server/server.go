@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
 	"github.com/priyanshu360/NoteLink/config"
 	"github.com/priyanshu360/NoteLink/handlers"
@@ -72,7 +73,7 @@ func initUserStore() repository.UserStore {
 	defer cancel()
 
 	dbName := "testdb"
-	collectionName := "notes"
+	collectionName := "users"
 
 	client, err := mgo.Connect(ctx, options.Client().ApplyURI(mongoURL))
 	if err != nil {
@@ -89,32 +90,32 @@ func initUserStore() repository.UserStore {
 }
 
 func (s *APIServer) initRoutesAndMiddleware() {
-	// Use AuthMiddleware for all routes
-	// s.router.Use(AuthMiddleware)
+	// Apply rate limiting middleware
+	s.router.Use(RateLimitMiddleware)
 
-	// Create a new instance of your note handler, assuming you have one
-
-	noteStore := initStore()
-	noteService := note.NewNoteService(noteStore)
-	noteHandler := handlers.NewNoteHandler(noteService)
-
-	// Define routes and associate them with the corresponding handler methods
-	s.router.HandleFunc("/api/notes", noteHandler.GetNotesHandler).Methods("GET")
-	s.router.HandleFunc("/api/notes/{id}", noteHandler.GetNoteHandler).Methods("GET")
-	s.router.HandleFunc("/api/notes", noteHandler.CreateNoteHandler).Methods("POST")
-	s.router.HandleFunc("/api/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
-	s.router.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
-	s.router.HandleFunc("/api/notes/{id}/share", noteHandler.ShareNoteHandler).Methods("POST")
-
-	// Uncomment and replace with your actual implementation of SearchNotesHandler
-	// s.router.HandleFunc("/api/search", handler.SearchNotesHandler(noteStore)).Methods("GET")
-
+	// Public routes (no authentication required)
 	userStore := initUserStore()
 	userService := user.NewUserService(userStore)
 	userHandler := handlers.NewUserHandler(userService)
 
 	s.router.HandleFunc("/api/auth/signup", userHandler.CreateUserHandler).Methods("POST")
 	s.router.HandleFunc("/api/auth/login", userHandler.AuthenticateUserHandler).Methods("POST")
+
+	// Protected routes (authentication required)
+	// Apply AuthMiddleware to all note routes
+	protectedRouter := s.router.PathPrefix("/api").Subrouter()
+	protectedRouter.Use(AuthMiddleware)
+
+	noteStore := initStore()
+	noteService := note.NewNoteService(noteStore)
+	noteHandler := handlers.NewNoteHandler(noteService)
+
+	protectedRouter.HandleFunc("/notes", noteHandler.GetNotesHandler).Methods("GET")
+	protectedRouter.HandleFunc("/notes/{id}", noteHandler.GetNoteHandler).Methods("GET")
+	protectedRouter.HandleFunc("/notes", noteHandler.CreateNoteHandler).Methods("POST")
+	protectedRouter.HandleFunc("/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
+	protectedRouter.HandleFunc("/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
+	protectedRouter.HandleFunc("/notes/{id}/share", noteHandler.ShareNoteHandler).Methods("POST")
 
 	s.httpServer.Handler = s.router
 }
@@ -129,23 +130,33 @@ func RateLimitMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// // AuthMiddleware is a middleware to handle user authentication using JWT
-// func AuthMiddleware(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		token, err := ExtractToken(r)
-// 		if err != nil {
-// 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 			return
-// 		}
+// AuthMiddleware is a middleware to handle user authentication using JWT
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenString := r.Header.Get("Authorization")
+		if tokenString == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 
-// 		if !VerifyToken(token) {
-// 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-// 			return
-// 		}
+		// Extract the token from the "Bearer" prefix
+		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+			tokenString = tokenString[7:]
+		}
 
-// 		next.ServeHTTP(w, r)
-// 	})
-//
+		// Parse and validate the token
+		token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+			return []byte("your-secret-key"), nil
+		})
+
+		if err != nil || !token.Valid {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 func (s *APIServer) run() {
 	go func() {
