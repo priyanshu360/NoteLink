@@ -106,8 +106,8 @@ func (s *APIServer) initRoutesAndMiddleware() {
 	s.router.HandleFunc("/api/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
 	s.router.HandleFunc("/api/notes/{id}/share", noteHandler.ShareNoteHandler).Methods("POST")
 
-	// Uncomment and replace with your actual implementation of SearchNotesHandler
-	// s.router.HandleFunc("/api/search", handler.SearchNotesHandler(noteStore)).Methods("GET")
+	// Search endpoint for notes
+	s.router.HandleFunc("/api/search", noteHandler.SearchNotesHandler).Methods("GET")
 
 	userStore := initUserStore()
 	userService := user.NewUserService(userStore)
