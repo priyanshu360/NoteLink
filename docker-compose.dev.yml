@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: notelink-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: testdb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - notelink-network
+
+  # Go Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notelink-backend-dev
+    restart: unless-stopped
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/testdb?authSource=admin
+      - DATABASE_NAME=testdb
+      - JWT_SECRET=dev-secret-key
+      - PORT=8080
+      - GIN_MODE=debug
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    volumes:
+      - .:/app
+      - /app/vendor
+    networks:
+      - notelink-network
+    command: air -c .air.toml
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  notelink-network:
+    driver: bridge
