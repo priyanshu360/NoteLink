@@ -1,289 +1,305 @@
 # NoteLink
 
-NoteLink is a secure and scalable RESTful API designed for seamless note management and collaboration. Built with Go and MongoDB, it provides user authentication, note CRUD operations, search functionality, and note sharing capabilities.
+📝 NoteLink is a secure and scalable full-stack note management platform built for seamless collaboration. It features a Go backend with MongoDB database and a modern React frontend, providing a complete solution for personal and team note-taking.
 
-## Features
+## ✨ Features
 
-- **User Authentication**: Secure JWT-based authentication with password hashing
-- **Note Management**: Create, read, update, and delete notes
-- **Search Functionality**: Full-text search across notes
-- **Note Sharing**: Share notes with other users
-- **Rate Limiting**: Built-in rate limiting to prevent abuse
-- **Input Validation**: Comprehensive input validation and sanitization
-- **RESTful API**: Clean and intuitive REST endpoints
+### 🚀 Core Features
+- **User Authentication**: Secure JWT-based authentication with bcrypt password hashing
+- **Note Management**: Complete CRUD operations with automatic timestamps
+- **Real-time Search**: Full-text search across note titles and content
+- **Note Sharing**: Share notes with other users seamlessly
+- **Responsive Design**: Mobile-first responsive UI/UX
 
-## Tech Stack
+### 🔒 Security Features
+- **Password Security**: bcrypt hashing with configurable rounds
+- **JWT Authentication**: Secure token-based authentication
+- **Rate Limiting**: Built-in rate limiting and DDoS protection
+- **Input Validation**: Comprehensive validation and sanitization
+- **CORS Support**: Configurable cross-origin resource sharing
 
-- **Backend**: Go (Golang)
-- **Web Framework**: Gorilla Mux
-- **Database**: MongoDB
+### 🐳 DevOps Features
+- **Docker Support**: Multi-container deployment with Docker Compose
+- **CI/CD Pipeline**: GitHub Actions for automated testing and deployment
+- **Health Checks**: Comprehensive health monitoring
+- **Load Balancing**: Nginx reverse proxy with SSL termination
+- **Monitoring**: Prometheus and Grafana integration
+
+## 🛠 Tech Stack
+
+### Backend
+- **Language**: Go 1.21.3
+- **Framework**: Gorilla Mux
+- **Database**: MongoDB 6.0
 - **Authentication**: JWT (JSON Web Tokens)
 - **Password Hashing**: bcrypt
 - **Rate Limiting**: golang.org/x/time/rate
 
-## API Endpoints
+### Frontend
+- **Framework**: React 18
+- **Routing**: React Router v6
+- **HTTP Client**: Axios
+- **Styling**: Custom CSS with responsive design
+- **State Management**: React Hooks and Context API
 
-### Authentication
+### Infrastructure
+- **Containerization**: Docker & Docker Compose
+- **Reverse Proxy**: Nginx
+- **Monitoring**: Prometheus + Grafana
+- **CI/CD**: GitHub Actions
+- **SSL/TLS**: Let's Encrypt ready
 
-#### POST /api/auth/signup
-Create a new user account.
-
-**Request Body:**
-```json
-{
-  "username": "johndoe",
-  "password": "password123"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "507f1f77bcf86cd799439011",
-  "username": "johndoe"
-}
-```
-
-#### POST /api/auth/login
-Authenticate a user and receive a JWT token.
-
-**Request Body:**
-```json
-{
-  "username": "johndoe",
-  "password": "password123"
-}
-```
-
-**Response:**
-```json
-{
-  "user": {
-    "id": "507f1f77bcf86cd799439011",
-    "username": "johndoe"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-### Notes (Protected Routes - Require JWT Token)
-
-#### GET /api/notes
-Get all notes for the authenticated user.
-
-**Headers:**
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response:**
-```json
-[
-  {
-    "id": "507f1f77bcf86cd799439011",
-    "user_id": "507f1f77bcf86cd799439012",
-    "title": "My First Note",
-    "content": "This is the content of my note",
-    "shared": false,
-    "created_at": "2024-01-15T10:30:00Z",
-    "updated_at": "2024-01-15T10:30:00Z"
-  }
-]
-```
-
-#### GET /api/notes/{id}
-Get a specific note by ID.
-
-#### POST /api/notes
-Create a new note.
-
-**Request Body:**
-```json
-{
-  "title": "New Note",
-  "content": "This is a new note"
-}
-```
-
-#### PUT /api/notes/{id}
-Update an existing note.
-
-**Request Body:**
-```json
-{
-  "title": "Updated Note",
-  "content": "This is the updated content"
-}
-```
-
-#### DELETE /api/notes/{id}
-Delete a note by ID.
-
-#### POST /api/notes/{id}/share
-Share a note with another user.
-
-**Request Body:**
-```json
-{
-  "target_user_id": "507f1f77bcf86cd799439013"
-}
-```
-
-#### GET /api/search?q={query}
-Search notes by query parameter.
-
-**Query Parameters:**
-- `q`: Search query string
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Go 1.21.3 or higher
-- MongoDB 4.4 or higher
+- Docker and Docker Compose
 - Git
 
-### Installation
-
-1. Clone the repository:
+### Development Environment
 ```bash
+# Clone the repository
 git clone https://github.com/priyanshu360/NoteLink.git
 cd NoteLink
+
+# Start development environment
+docker-compose -f docker-compose.dev.yml up --build
+
+# View the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8080
+# Database: mongodb://admin:password123@localhost:27017/testdb
 ```
 
-2. Install dependencies:
+### Production Deployment
 ```bash
-go mod tidy
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your production values
+
+# Deploy with monitoring and scaling
+docker-compose --profile production up --build -d
+
+# View monitoring dashboards
+# Grafana: http://localhost:3001
+# Prometheus: http://localhost:9090
 ```
 
-3. Set up MongoDB:
+## 🌐 Frontend Features
+
+### User Interface
+- **Modern Design**: Clean, intuitive interface with smooth animations
+- **Responsive Layout**: Mobile-first design that works on all devices
+- **Dark/Light Mode**: Theme support (coming soon)
+- **Real-time Updates**: Live updates across components
+
+### Pages & Components
+- **Authentication**: Login and signup with form validation
+- **Dashboard**: Overview of all notes with quick actions
+- **Note Editor**: Rich text editor for creating and editing notes
+- **Search**: Advanced search with filters and suggestions
+- **Navigation**: Clean navigation with user context
+
+## 🔧 Backend API
+
+### Authentication Endpoints
+- `POST /api/auth/signup` - Create new user account
+- `POST /api/auth/login` - Authenticate user and get JWT token
+
+### Note Endpoints (Protected)
+- `GET /api/notes` - Get all user notes
+- `GET /api/notes/{id}` - Get specific note
+- `POST /api/notes` - Create new note
+- `PUT /api/notes/{id}` - Update existing note
+- `DELETE /api/notes/{id}` - Delete note
+- `POST /api/notes/{id}/share` - Share note with user
+- `GET /api/search?q={query}` - Search notes
+
+### Security Features
+- **JWT Authentication**: All protected endpoints require valid JWT token
+- **Rate Limiting**: Configurable rate limits per endpoint
+- **Input Validation**: Comprehensive validation for all inputs
+- **CORS**: Configurable CORS policies
+
+## 📊 Monitoring & Observability
+
+### Health Checks
+- **Backend Health**: `GET /health` - Service health status
+- **Frontend Health**: `GET /health` - Application health
+- **Database Health**: MongoDB ping checks
+
+### Metrics Collection
+- **Request Metrics**: Response times, error rates, request counts
+- **System Metrics**: CPU, memory, disk usage
+- **Custom Metrics**: Active users, note operations
+
+### Dashboards
+- **Grafana**: Pre-built dashboards for application monitoring
+- **Prometheus**: Time-series database for metrics storage
+
+## 🧪 Testing
+
+### Backend Tests
 ```bash
-# Start MongoDB service
-sudo systemctl start mongod
-# or using Docker
-docker run -d -p 27017:27017 --name mongodb mongo:latest
-```
-
-4. Configure environment variables (optional):
-```bash
-export MONGODB_URL="mongodb://localhost:27017"
-export DATABASE_NAME="notelink"
-export JWT_SECRET="your-secret-key"
-```
-
-5. Run the application:
-```bash
-go run main.go
-```
-
-The server will start on `http://localhost:8080`.
-
-### Running Tests
-
-Run all tests:
-```bash
+# Run all tests
 go test ./...
+
+# Run tests with coverage
+go test -v -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out -o coverage.html
 ```
 
-Run tests with coverage:
+### Frontend Tests
 ```bash
-go test -cover ./...
+cd frontend
+npm test                    # Run tests
+npm run test:coverage        # Run with coverage
+npm run build               # Build for production
 ```
 
-## Project Structure
+### E2E Testing
+```bash
+# Start test environment
+docker-compose -f docker-compose.test.yml up --build
 
-```
-NoteLink/
-├── config/           # Configuration management
-├── handlers/         # HTTP handlers for API endpoints
-├── model/           # Data models and structs
-├── repository/      # Data access layer
-│   └── mongo/      # MongoDB implementations
-├── service/         # Business logic layer
-│   ├── note/       # Note service
-│   └── user/       # User service
-├── server/          # HTTP server setup and routing
-├── utils/           # Utility functions
-├── main.go          # Application entry point
-└── README.md        # This file
+# Run integration tests
+npm run test:e2e
 ```
 
-## Configuration
+## 📦 Container Images
 
-The application can be configured using environment variables or by modifying the configuration files in the `config/` directory.
+### Backend Image
+- **Multi-stage build**: Optimized for production
+- **Base Image**: Alpine Linux for minimal size
+- **Security**: Non-root user, minimal attack surface
 
-### Default Configuration
+### Frontend Image
+- **Build Stage**: Node.js for building React app
+- **Production Stage**: Nginx for serving static files
+- **Optimization**: Gzip compression, static asset caching
 
-- **Port**: 8080
-- **MongoDB URL**: mongodb://localhost:27017
-- **Database Name**: testdb
-- **JWT Secret**: your-secret-key
-- **Rate Limit**: 2 requests per second, burst of 5
+## 🔒 Security Considerations
 
-## Security Features
+### Production Security
+- **Environment Variables**: All secrets managed via environment variables
+- **HTTPS**: SSL/TLS encryption with automatic certificate renewal
+- **Firewall**: Configurable firewall rules
+- **Monitoring**: Security event logging and alerting
 
-- **Password Hashing**: All passwords are hashed using bcrypt
-- **JWT Authentication**: Secure token-based authentication
-- **Input Validation**: Comprehensive validation of all inputs
-- **Rate Limiting**: Protection against brute force attacks
-- **CORS Support**: Configurable CORS settings
+### Data Protection
+- **Encryption**: Data encrypted at rest and in transit
+- **Backups**: Automated backup strategy with retention
+- **Access Control**: Role-based access control (RBAC) ready
 
-## Contributing
+## 📈 Performance Optimization
 
+### Database Optimization
+- **Indexes**: Optimized indexes for common queries
+- **Connection Pooling**: Efficient database connection management
+- **Caching**: Redis integration for frequently accessed data
+
+### Frontend Optimization
+- **Code Splitting**: Lazy loading of components
+- **Asset Optimization**: Image compression, minification
+- **Caching**: Browser caching for static assets
+
+## 🔄 CI/CD Pipeline
+
+### Automated Testing
+- **Unit Tests**: Backend and frontend unit tests
+- **Integration Tests**: API endpoint testing
+- **Security Scans**: Automated vulnerability scanning
+- **Performance Tests**: Load testing and performance benchmarks
+
+### Deployment Pipeline
+- **Multi-Environment**: Development, staging, production deployments
+- **Rolling Updates**: Zero-downtime deployments
+- **Rollback**: Automatic rollback on deployment failures
+- **Monitoring**: Real-time deployment monitoring
+
+## 🛠 Development Workflow
+
+### Local Development
+```bash
+# Install dependencies
+make deps
+
+# Run development server
+make run
+
+# Run tests
+make test
+
+# Build for production
+make build
+```
+
+### Code Quality
+- **Linting**: Automated code quality checks
+- **Formatting**: Consistent code formatting
+- **Pre-commit Hooks**: Automated checks before commits
+
+## 📚 Documentation
+
+### API Documentation
+- **OpenAPI/Swagger**: Interactive API documentation
+- **Postman Collection**: Ready-to-use API collection
+- **Examples**: Comprehensive request/response examples
+
+### Developer Guide
+- **Architecture**: System architecture and design decisions
+- **Contributing**: Guidelines for contributing to the project
+- **Troubleshooting**: Common issues and solutions
+
+## 🚀 Deployment Options
+
+### Docker Deployment
+- **Development**: `docker-compose.dev.yml`
+- **Production**: `docker-compose.prod.yml`
+- **Monitoring**: Prometheus + Grafana stack
+
+### Kubernetes Deployment
+```bash
+# Deploy to Kubernetes
+kubectl apply -f k8s/
+```
+
+### Cloud Deployment
+- **AWS**: ECS/EKS deployment ready
+- **Google Cloud**: GKE deployment configuration
+- **Azure**: AKS deployment templates
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Process
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## API Documentation
+## 🙏 Acknowledgments
 
-For detailed API documentation, you can use tools like Postman or Insomnia to import the following collection:
+- **React Team**: For the amazing React framework
+- **Go Team**: For the powerful Go language
+- **MongoDB**: For the flexible database solution
+- **Open Source Community**: For all the amazing tools and libraries
 
-### Base URL
-```
-http://localhost:8080/api
-```
+## 📞 Support
 
-### Authentication Flow
-1. Create an account using `POST /auth/signup`
-2. Login to get a JWT token using `POST /auth/login`
-3. Include the token in the Authorization header for all protected routes:
-   `Authorization: Bearer <your-jwt-token>`
+- **Issues**: [GitHub Issues](https://github.com/priyanshu360/NoteLink/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/priyanshu360/NoteLink/discussions)
+- **Email**: support@notelink.com
 
-## Troubleshooting
+---
 
-### Common Issues
-
-1. **MongoDB Connection Error**: Make sure MongoDB is running and accessible
-2. **JWT Token Error**: Check that the JWT secret is the same across all services
-3. **Rate Limiting**: If you receive "Rate limit exceeded", wait a moment before retrying
-
-### Development Tips
-
-- Use `go fmt` to format your code
-- Run `go vet` to check for potential issues
-- Write tests for new features
-- Update documentation when adding new endpoints
-
-## Performance Considerations
-
-- MongoDB indexes are automatically created on frequently queried fields
-- Rate limiting prevents abuse
-- Connection pooling is used for database connections
-- All responses are properly compressed when possible
-
-## Future Enhancements
-
-- [ ] Real-time collaboration using WebSockets
-- [ ] Note categories and tags
-- [ ] File attachments support
-- [ ] Note versioning and history
-- [ ] Advanced search with filters
-- [ ] User roles and permissions
-- [ ] Email notifications
-- [ ] Mobile app support
+<div align="center">
+  <strong>⭐ Star this repository if it helped you!</strong>
+  <br>
+  Made with ❤️ by the NoteLink Team
+</div>
