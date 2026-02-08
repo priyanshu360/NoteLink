@@ -193,3 +193,27 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+// SearchNotesHandler returns a handler for searching notes
+func (h *NoteHandler) SearchNotesHandler(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserIDFromToken(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		http.Error(w, "Query parameter 'q' is required", http.StatusBadRequest)
+		return
+	}
+
+	notes, err := h.noteService.SearchNotes(userID, query)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(notes)
+}

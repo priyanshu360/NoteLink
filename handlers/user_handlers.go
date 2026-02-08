@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/service"
@@ -26,6 +27,22 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Validate input
+	if strings.TrimSpace(user.Username) == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(user.Password) == "" {
+		http.Error(w, "Password is required", http.StatusBadRequest)
+		return
+	}
+
+	if len(user.Password) < 6 {
+		http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
+		return
+	}
+
 	createdUser, err := h.userService.CreateUser(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -41,6 +58,17 @@ func (h *UserHandler) AuthenticateUserHandler(w http.ResponseWriter, r *http.Req
 	var credentials model.User
 	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Validate input
+	if strings.TrimSpace(credentials.Username) == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(credentials.Password) == "" {
+		http.Error(w, "Password is required", http.StatusBadRequest)
 		return
 	}
 

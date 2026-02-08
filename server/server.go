@@ -116,6 +116,7 @@ func (s *APIServer) initRoutesAndMiddleware() {
 	protectedRouter.HandleFunc("/notes/{id}", noteHandler.UpdateNoteHandler).Methods("PUT")
 	protectedRouter.HandleFunc("/notes/{id}", noteHandler.DeleteNoteHandler).Methods("DELETE")
 	protectedRouter.HandleFunc("/notes/{id}/share", noteHandler.ShareNoteHandler).Methods("POST")
+	protectedRouter.HandleFunc("/search", noteHandler.SearchNotesHandler).Methods("GET")
 
 	s.httpServer.Handler = s.router
 }
