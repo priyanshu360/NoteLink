@@ -84,7 +84,9 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(note)
 }
 
 // UpdateNoteHandler returns a handler for updating an existing note by ID
@@ -125,7 +127,8 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(existingNote)
 }
 
 // DeleteNoteHandler returns a handler for deleting a note by ID
