@@ -6,9 +6,15 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/repository"
+	"github.com/priyanshu360/NoteLink/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type UserLoginResponse struct {
+	User  *model.User `json:"user"`
+	Token string      `json:"token"`
+}
 
 type UserServiceImpl struct {
 	userRepo repository.UserStore
@@ -34,20 +40,33 @@ func (s *UserServiceImpl) CreateUser(user *model.User) (*model.User, error) {
 }
 
 // AuthenticateUser authenticates a user based on provided credentials
-func (s *UserServiceImpl) AuthenticateUser(credentials model.User) (*model.User, error) {
+func (s *UserServiceImpl) AuthenticateUser(credentials model.User) (service.UserLoginResponse, error) {
 	user, err := s.userRepo.AuthenticateUser(credentials)
 	if err != nil {
-		return nil, err
+		return service.UserLoginResponse{
+			User:  nil,
+			Token: "",
+		}, err
 	}
 
 	// Generate JWT token
 	token, err := s.generateJWTToken(user.ID)
 	if err != nil {
-		return nil, err
+		return service.UserLoginResponse{
+			User:  nil,
+			Token: "",
+		}, err
 	}
 
-	user.Password = token // Store token in password field temporarily for response
-	return user, nil
+	// Clear password from user object before returning
+	user.Password = ""
+
+	response := service.UserLoginResponse{
+		User:  user,
+		Token: token,
+	}
+
+	return response, nil
 }
 
 // HashPassword hashes a password using bcrypt

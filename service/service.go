@@ -15,7 +15,12 @@ type NoteService interface {
 	SearchNotes(userID primitive.ObjectID, query string) ([]model.Note, error)
 }
 
+type UserLoginResponse struct {
+	User  *model.User `json:"user"`
+	Token string      `json:"token"`
+}
+
 type UserService interface {
 	CreateUser(user *model.User) (*model.User, error)
-	AuthenticateUser(credentials model.User) (*model.User, error)
+	AuthenticateUser(credentials model.User) (UserLoginResponse, error)
 }
