@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
 	"github.com/priyanshu360/NoteLink/config"
 	"github.com/priyanshu360/NoteLink/handlers"
@@ -31,7 +30,6 @@ type APIServer struct {
 	httpServer  *http.Server
 	middlewares []mux.MiddlewareFunc
 	router      *mux.Router
-	// rbac        map[http.Handler]models.AccessLevelModeEnum
 }
 
 func NewServer(cfg config.ServerConfig) *APIServer {
@@ -43,7 +41,6 @@ func NewServer(cfg config.ServerConfig) *APIServer {
 		},
 		middlewares: []mux.MiddlewareFunc{},
 		router:      mux.NewRouter(),
-		// rbac:        make(map[http.Handler]models.AccessLevelModeEnum),
 	}
 }
 
@@ -74,21 +71,18 @@ func connectMongo() (*mgo.Client, string) {
 	return client, dbName
 }
 
-func initStore() repository.NoteStore {
-	client, dbName := connectMongo()
-	return mongo.NewMongoNoteStore(client, dbName, "notes")
-}
-
-func initUserStore() repository.UserStore {
-	client, dbName := connectMongo()
-	return mongo.NewMongoUserRepository(client, dbName, "users")
-}
-
 func (s *APIServer) initRoutesAndMiddleware() {
-	// Apply rate limiting middleware
 	s.router.Use(RateLimitMiddleware)
 
-	// Public routes (no authentication required)
+	client, dbName := connectMongo()
+
+	initUserStore := func() repository.UserStore {
+		return mongo.NewMongoUserRepository(client, dbName, "users")
+	}
+	initNoteStore := func() repository.NoteStore {
+		return mongo.NewMongoNoteStore(client, dbName, "notes")
+	}
+
 	userStore := initUserStore()
 	userService := user.NewUserService(userStore)
 	userHandler := handlers.NewUserHandler(userService)
@@ -96,12 +90,10 @@ func (s *APIServer) initRoutesAndMiddleware() {
 	s.router.HandleFunc("/api/auth/signup", userHandler.CreateUserHandler).Methods("POST")
 	s.router.HandleFunc("/api/auth/login", userHandler.AuthenticateUserHandler).Methods("POST")
 
-	// Protected routes (authentication required)
-	// Apply AuthMiddleware to all note routes
 	protectedRouter := s.router.PathPrefix("/api").Subrouter()
 	protectedRouter.Use(AuthMiddleware)
 
-	noteStore := initStore()
+	noteStore := initNoteStore()
 	noteService := note.NewNoteService(noteStore)
 	noteHandler := handlers.NewNoteHandler(noteService, userService)
 
@@ -126,7 +118,6 @@ func RateLimitMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// AuthMiddleware is a middleware to handle user authentication using JWT
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := r.Header.Get("Authorization")
@@ -135,21 +126,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Extract the token from the "Bearer" prefix
-		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
-			tokenString = tokenString[7:]
-		}
-
-		// Parse and validate the token
-		token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-			secret := os.Getenv("JWT_SECRET")
-		if secret == "" {
-			secret = "your-secret-key"
-		}
-		return []byte(secret), nil
-		})
-
-		if err != nil || !token.Valid {
+		_, err := utils.ValidateJWT(tokenString)
+		if err != nil {
 			utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 			return
 		}
@@ -168,7 +146,6 @@ func (s *APIServer) run() {
 
 	log.Println("[*] Server running .... ")
 
-	// Handle graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 

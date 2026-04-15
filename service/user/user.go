@@ -1,13 +1,14 @@
 package user
 
 import (
-	"os"
+	"context"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/repository"
 	"github.com/priyanshu360/NoteLink/service"
+	"github.com/priyanshu360/NoteLink/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,27 +22,24 @@ type UserServiceImpl struct {
 	userRepo repository.UserStore
 }
 
-// NewUserService creates a new instance of UserServiceImpl
 func NewUserService(userRepo repository.UserStore) *UserServiceImpl {
 	return &UserServiceImpl{
 		userRepo: userRepo,
 	}
 }
 
-// CreateUser creates a new user
-func (s *UserServiceImpl) CreateUser(user *model.User) (*model.User, error) {
+func (s *UserServiceImpl) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
 	hashedPassword, err := s.HashPassword(user.Password)
 	if err != nil {
 		return nil, err
 	}
 	user.Password = hashedPassword
 
-	return s.userRepo.CreateUser(user)
+	return s.userRepo.CreateUser(ctx, user)
 }
 
-// AuthenticateUser authenticates a user based on provided credentials
-func (s *UserServiceImpl) AuthenticateUser(credentials model.User) (service.UserLoginResponse, error) {
-	user, err := s.userRepo.AuthenticateUser(credentials)
+func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, credentials model.User) (service.UserLoginResponse, error) {
+	user, err := s.userRepo.AuthenticateUser(ctx, credentials)
 	if err != nil {
 		return service.UserLoginResponse{
 			User:  nil,
@@ -49,7 +47,6 @@ func (s *UserServiceImpl) AuthenticateUser(credentials model.User) (service.User
 		}, err
 	}
 
-	// Generate JWT token
 	token, err := s.generateJWTToken(user.ID)
 	if err != nil {
 		return service.UserLoginResponse{
@@ -58,7 +55,6 @@ func (s *UserServiceImpl) AuthenticateUser(credentials model.User) (service.User
 		}, err
 	}
 
-	// Clear password from user object before returning
 	user.Password = ""
 
 	response := service.UserLoginResponse{
@@ -69,32 +65,20 @@ func (s *UserServiceImpl) AuthenticateUser(credentials model.User) (service.User
 	return response, nil
 }
 
-// GetUserByUsername finds a user by username
-func (s *UserServiceImpl) GetUserByUsername(username string) (*model.User, error) {
-	return s.userRepo.GetUserByUsername(username)
+func (s *UserServiceImpl) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
+	return s.userRepo.GetUserByUsername(ctx, username)
 }
 
-// HashPassword hashes a password using bcrypt
 func (s *UserServiceImpl) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(bytes), err
 }
 
-// CheckPasswordHash compares a password with its hash
 func (s *UserServiceImpl) CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
-func getJWTSecret() string {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "your-secret-key"
-	}
-	return secret
-}
-
-// generateJWTToken generates a JWT token for the user
 func (s *UserServiceImpl) generateJWTToken(userID primitive.ObjectID) (string, error) {
 	claims := &jwt.StandardClaims{
 		Subject:   userID.Hex(),
@@ -103,5 +87,5 @@ func (s *UserServiceImpl) generateJWTToken(userID primitive.ObjectID) (string, e
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(getJWTSecret()))
+	return token.SignedString([]byte(utils.GetJWTSecret()))
 }
