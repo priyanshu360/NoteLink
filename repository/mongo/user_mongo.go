@@ -28,11 +28,11 @@ func NewMongoUserRepository(client *mongo.Client, databaseName, collectionName s
 }
 
 // GetUserByUsername finds a user by username
-func (repo *MongoUserRepository) GetUserByUsername(username string) (*model.User, error) {
+func (repo *MongoUserRepository) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
 	collection := repo.client.Database(repo.databaseName).Collection(repo.collectionName)
 
 	var user model.User
-	err := collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, errors.New("user not found")
@@ -44,12 +44,12 @@ func (repo *MongoUserRepository) GetUserByUsername(username string) (*model.User
 }
 
 // CreateUser creates a new user in the database
-func (repo *MongoUserRepository) CreateUser(user *model.User) (*model.User, error) {
+func (repo *MongoUserRepository) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
 	collection := repo.client.Database(repo.databaseName).Collection(repo.collectionName)
 
 	user.ID = primitive.NewObjectID()
 
-	_, err := collection.InsertOne(context.TODO(), user)
+	_, err := collection.InsertOne(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -59,12 +59,12 @@ func (repo *MongoUserRepository) CreateUser(user *model.User) (*model.User, erro
 }
 
 // AuthenticateUser authenticates a user based on provided credentials
-func (repo *MongoUserRepository) AuthenticateUser(credentials model.User) (*model.User, error) {
+func (repo *MongoUserRepository) AuthenticateUser(ctx context.Context, credentials model.User) (*model.User, error) {
 	collection := repo.client.Database(repo.databaseName).Collection(repo.collectionName)
 
 	var user model.User
 	filter := bson.M{"username": credentials.Username}
-	err := collection.FindOne(context.TODO(), filter).Decode(&user)
+	err := collection.FindOne(ctx, filter).Decode(&user)
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {

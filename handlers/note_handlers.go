@@ -11,18 +11,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// NoteHandler provides HTTP handlers for note-related operations
 type NoteHandler struct {
 	noteService service.NoteService
 	userService service.UserService
 }
 
-// NewNoteHandler creates a new instance of NoteHandler
 func NewNoteHandler(noteService service.NoteService, userService service.UserService) *NoteHandler {
 	return &NoteHandler{noteService: noteService, userService: userService}
 }
 
-// GetNotesHandler returns a handler for getting all notes
 func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
@@ -30,7 +27,7 @@ func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notes, err := h.noteService.GetAllNotes(userID)
+	notes, err := h.noteService.GetAllNotes(r.Context(), userID)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
@@ -40,7 +37,6 @@ func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(notes)
 }
 
-// GetNoteHandler returns a handler for getting a single note by ID
 func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
@@ -55,7 +51,7 @@ func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	note, err := h.noteService.GetNoteByID(noteID, userID)
+	note, err := h.noteService.GetNoteByID(r.Context(), noteID, userID)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, err.Error()))
 		return
@@ -65,7 +61,6 @@ func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(note)
 }
 
-// CreateNoteHandler returns a handler for creating a new note
 func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
@@ -80,7 +75,7 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	note.UserID = userID
-	err = h.noteService.CreateNote(&note)
+	err = h.noteService.CreateNote(r.Context(), &note)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
@@ -91,7 +86,6 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(note)
 }
 
-// UpdateNoteHandler returns a handler for updating an existing note by ID
 func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
@@ -112,18 +106,16 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Ensure that the note belongs to the authenticated user
-	existingNote, err := h.noteService.GetNoteByID(noteID, userID)
+	existingNote, err := h.noteService.GetNoteByID(r.Context(), noteID, userID)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, err.Error()))
 		return
 	}
 
-	// Update the existing note
 	existingNote.Title = updatedNote.Title
 	existingNote.Content = updatedNote.Content
 
-	err = h.noteService.UpdateNote(existingNote)
+	err = h.noteService.UpdateNote(r.Context(), existingNote)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
@@ -133,7 +125,6 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(existingNote)
 }
 
-// DeleteNoteHandler returns a handler for deleting a note by ID
 func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
@@ -148,7 +139,7 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = h.noteService.DeleteNote(noteID, userID)
+	err = h.noteService.DeleteNote(r.Context(), noteID, userID)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, err.Error()))
 		return
@@ -157,7 +148,6 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ShareNoteHandler returns a handler for sharing a note with another user
 func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
@@ -185,7 +175,7 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 	var targetUserID primitive.ObjectID
 
 	if shareRequest.Username != "" {
-		targetUser, err := h.userService.GetUserByUsername(shareRequest.Username)
+		targetUser, err := h.userService.GetUserByUsername(r.Context(), shareRequest.Username)
 		if err != nil {
 			utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, "Target user not found"))
 			return
@@ -199,7 +189,7 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = h.noteService.ShareNoteWithUser(noteID, userID, targetUserID)
+	err = h.noteService.ShareNoteWithUser(r.Context(), noteID, userID, targetUserID)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
@@ -208,7 +198,6 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// SearchNotesHandler returns a handler for searching notes
 func (h *NoteHandler) SearchNotesHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
@@ -222,7 +211,7 @@ func (h *NoteHandler) SearchNotesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	notes, err := h.noteService.SearchNotes(userID, query)
+	notes, err := h.noteService.SearchNotes(r.Context(), userID, query)
 	if err != nil {
 		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return

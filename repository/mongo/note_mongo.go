@@ -24,9 +24,8 @@ func NewMongoNoteStore(client *mongo.Client, databaseName, collectionName string
 }
 
 // GetAllNotes retrieves all notes for a specific user
-func (store *MongoNoteStore) GetAllNotes(userID primitive.ObjectID) ([]model.Note, error) {
+func (store *MongoNoteStore) GetAllNotes(ctx context.Context, userID primitive.ObjectID) ([]model.Note, error) {
 	collection := store.client.Database(store.databaseName).Collection(store.collectionName)
-	ctx := context.TODO()
 
 	var notes []model.Note
 	cursor, err := collection.Find(ctx, bson.M{"user_id": userID})
@@ -44,9 +43,8 @@ func (store *MongoNoteStore) GetAllNotes(userID primitive.ObjectID) ([]model.Not
 }
 
 // GetNoteByID retrieves a note by ID for a specific user
-func (store *MongoNoteStore) GetNoteByID(noteID primitive.ObjectID, userID primitive.ObjectID) (*model.Note, error) {
+func (store *MongoNoteStore) GetNoteByID(ctx context.Context, noteID primitive.ObjectID, userID primitive.ObjectID) (*model.Note, error) {
 	collection := store.client.Database(store.databaseName).Collection(store.collectionName)
-	ctx := context.TODO()
 
 	var note model.Note
 	err := collection.FindOne(ctx, bson.M{"_id": noteID, "user_id": userID}).Decode(&note)
@@ -58,18 +56,16 @@ func (store *MongoNoteStore) GetNoteByID(noteID primitive.ObjectID, userID primi
 }
 
 // CreateNote creates a new note for a specific user
-func (store *MongoNoteStore) CreateNote(note *model.Note) error {
+func (store *MongoNoteStore) CreateNote(ctx context.Context, note *model.Note) error {
 	collection := store.client.Database(store.databaseName).Collection(store.collectionName)
-	ctx := context.TODO()
 
 	_, err := collection.InsertOne(ctx, note)
 	return err
 }
 
 // UpdateNote updates an existing note for a specific user
-func (store *MongoNoteStore) UpdateNote(note *model.Note) error {
+func (store *MongoNoteStore) UpdateNote(ctx context.Context, note *model.Note) error {
 	collection := store.client.Database(store.databaseName).Collection(store.collectionName)
-	ctx := context.TODO()
 
 	_, err := collection.UpdateOne(ctx,
 		bson.M{"_id": note.ID, "user_id": note.UserID},
@@ -79,18 +75,16 @@ func (store *MongoNoteStore) UpdateNote(note *model.Note) error {
 }
 
 // DeleteNote deletes a note by ID for a specific user
-func (store *MongoNoteStore) DeleteNote(noteID primitive.ObjectID, userID primitive.ObjectID) error {
+func (store *MongoNoteStore) DeleteNote(ctx context.Context, noteID primitive.ObjectID, userID primitive.ObjectID) error {
 	collection := store.client.Database(store.databaseName).Collection(store.collectionName)
-	ctx := context.TODO()
 
 	_, err := collection.DeleteOne(ctx, bson.M{"_id": noteID, "user_id": userID})
 	return err
 }
 
 // ShareNoteWithUser shares a note with another user for a specific user
-func (store *MongoNoteStore) ShareNoteWithUser(noteID primitive.ObjectID, userID primitive.ObjectID, targetUserID primitive.ObjectID) error {
+func (store *MongoNoteStore) ShareNoteWithUser(ctx context.Context, noteID primitive.ObjectID, userID primitive.ObjectID, targetUserID primitive.ObjectID) error {
 	collection := store.client.Database(store.databaseName).Collection(store.collectionName)
-	ctx := context.TODO()
 
 	// Check if the note exists and belongs to the user
 	var note model.Note
@@ -109,9 +103,8 @@ func (store *MongoNoteStore) ShareNoteWithUser(noteID primitive.ObjectID, userID
 }
 
 // SearchNotes searches for notes based on keywords for a specific user
-func (store *MongoNoteStore) SearchNotes(userID primitive.ObjectID, query string) ([]model.Note, error) {
+func (store *MongoNoteStore) SearchNotes(ctx context.Context, userID primitive.ObjectID, query string) ([]model.Note, error) {
 	collection := store.client.Database(store.databaseName).Collection(store.collectionName)
-	ctx := context.TODO()
 
 	var notes []model.Note
 	filter := bson.M{"user_id": userID, "$text": bson.M{"$search": query}}

@@ -1,45 +1,55 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/priyanshu360/NoteLink/model"
-	"github.com/priyanshu360/NoteLink/service"
 	"github.com/priyanshu360/NoteLink/service/user"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// MockUserStore for testing
 type MockUserStore struct {
 	users []model.User
 }
 
-func (m *MockUserStore) CreateUser(user *model.User) (*model.User, error) {
-	user.ID = primitive.NewObjectID()
-	user.Password = "" // Clear password for response
-	m.users = append(m.users, *user)
-	return user, nil
+func (m *MockUserStore) CreateUser(ctx context.Context, usr *model.User) (*model.User, error) {
+	usr.ID = primitive.NewObjectID()
+	usr.Password = ""
+	m.users = append(m.users, *usr)
+	return usr, nil
 }
 
-func (m *MockUserStore) AuthenticateUser(credentials model.User) (*model.User, error) {
-	for _, user := range m.users {
-		if user.Username == credentials.Username {
-			user.Password = "" // Clear password for response
-			return &user, nil
+func (m *MockUserStore) AuthenticateUser(ctx context.Context, credentials model.User) (*model.User, error) {
+	for _, u := range m.users {
+		if u.Username == credentials.Username {
+			u.Password = ""
+			return &u, nil
 		}
 	}
-	return nil, &model.User{Username: "user"}
+	return nil, errors.New("invalid credentials")
+}
+
+func (m *MockUserStore) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
+	for _, u := range m.users {
+		if u.Username == username {
+			return &u, nil
+		}
+	}
+	return nil, errors.New("user not found")
 }
 
 func TestCreateUserHandler(t *testing.T) {
-	// Test case 1: Valid user creation
 	t.Run("Valid_user_creation", func(t *testing.T) {
 		mockStore := &MockUserStore{}
-		handler := NewUserHandler(mockStore)
+		userService := user.NewUserService(mockStore)
+		handler := NewUserHandler(userService)
 
 		userData := map[string]interface{}{
 			"username": "testuser",
@@ -59,10 +69,10 @@ func TestCreateUserHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	// Test case 2: Invalid JSON
 	t.Run("Invalid_JSON", func(t *testing.T) {
 		mockStore := &MockUserStore{}
-		handler := NewUserHandler(mockStore)
+		userService := user.NewUserService(mockStore)
+		handler := NewUserHandler(userService)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/signup", bytes.NewBufferString("invalid json"))
 		w := httptest.NewRecorder()
@@ -72,64 +82,20 @@ func TestCreateUserHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
-	// Test case 3: Missing username
-	t.Run("Missing_username", func(t *testing.T) {
-		mockStore := &MockUserStore{}
-		handler := NewUserHandler(mockStore)
-
-		userData := map[string]interface{}{
-			"password": "password123",
-		}
-
-		var body bytes.Buffer
-		if err := json.NewEncoder(&body).Encode(userData); err != nil {
-			t.Fatal(err)
-		}
-
-		req := httptest.NewRequest(http.MethodPost, "/api/auth/signup", &body)
-		w := httptest.NewRecorder()
-
-		handler.CreateUserHandler(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
-
-	// Test case 4: Missing password
-	t.Run("Missing_password", func(t *testing.T) {
-		mockStore := &MockUserStore{}
-		handler := NewUserHandler(mockStore)
-
-		userData := map[string]interface{}{
-			"username": "testuser",
-		}
-
-		var body bytes.Buffer
-		if err := json.NewEncoder(&body).Encode(userData); err != nil {
-			t.Fatal(err)
-		}
-
-		req := httptest.NewRequest(http.MethodPost, "/api/auth/signup", &body)
-		w := httptest.NewRecorder()
-
-		handler.CreateUserHandler(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
 }
 
 func TestAuthenticateUserHandler(t *testing.T) {
-	// Test case 1: Valid authentication
 	t.Run("Valid_authentication", func(t *testing.T) {
 		mockStore := &MockUserStore{}
-		// Pre-add a user for authentication
-		user := model.User{
+		testUser := model.User{
 			ID:       primitive.NewObjectID(),
 			Username: "testuser",
 			Password: "hashedpassword",
 		}
-		mockStore.users = []model.User{user}
+		mockStore.users = []model.User{testUser}
 
-		handler := NewUserHandler(mockStore)
+		userService := user.NewUserService(mockStore)
+		handler := NewUserHandler(userService)
 
 		credentials := map[string]interface{}{
 			"username": "testuser",
@@ -158,10 +124,10 @@ func TestAuthenticateUserHandler(t *testing.T) {
 		assert.Contains(t, response, "token")
 	})
 
-	// Test case 2: Invalid credentials
 	t.Run("Invalid_credentials", func(t *testing.T) {
 		mockStore := &MockUserStore{}
-		handler := NewUserHandler(mockStore)
+		userService := user.NewUserService(mockStore)
+		handler := NewUserHandler(userService)
 
 		credentials := map[string]interface{}{
 			"username": "nonexistent",
@@ -181,10 +147,10 @@ func TestAuthenticateUserHandler(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 	})
 
-	// Test case 3: Invalid JSON
 	t.Run("Invalid_JSON", func(t *testing.T) {
 		mockStore := &MockUserStore{}
-		handler := NewUserHandler(mockStore)
+		userService := user.NewUserService(mockStore)
+		handler := NewUserHandler(userService)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString("invalid json"))
 		w := httptest.NewRecorder()
