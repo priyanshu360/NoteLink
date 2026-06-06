@@ -13,11 +13,12 @@ import (
 // NoteHandler provides HTTP handlers for note-related operations
 type NoteHandler struct {
 	noteService service.NoteService
+	userService service.UserService
 }
 
 // NewNoteHandler creates a new instance of NoteHandler
-func NewNoteHandler(noteService service.NoteService) *NoteHandler {
-	return &NoteHandler{noteService: noteService}
+func NewNoteHandler(noteService service.NoteService, userService service.UserService) *NoteHandler {
+	return &NoteHandler{noteService: noteService, userService: userService}
 }
 
 // GetNotesHandler returns a handler for getting all notes
@@ -172,6 +173,7 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 
 	var shareRequest struct {
 		TargetUserID string `json:"target_user_id"`
+		Username     string `json:"username"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&shareRequest); err != nil {
@@ -179,10 +181,21 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	targetUserID, err := primitive.ObjectIDFromHex(shareRequest.TargetUserID)
-	if err != nil {
-		http.Error(w, "Invalid target user ID", http.StatusBadRequest)
-		return
+	var targetUserID primitive.ObjectID
+
+	if shareRequest.Username != "" {
+		targetUser, err := h.userService.GetUserByUsername(shareRequest.Username)
+		if err != nil {
+			http.Error(w, "Target user not found", http.StatusNotFound)
+			return
+		}
+		targetUserID = targetUser.ID
+	} else {
+		targetUserID, err = primitive.ObjectIDFromHex(shareRequest.TargetUserID)
+		if err != nil {
+			http.Error(w, "Invalid target user ID", http.StatusBadRequest)
+			return
+		}
 	}
 
 	err = h.noteService.ShareNoteWithUser(noteID, userID, targetUserID)

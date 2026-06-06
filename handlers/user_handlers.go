@@ -20,13 +20,14 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 
 // CreateUserHandler returns a handler for creating a new user
 func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
-	var user model.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	var creds model.Credentials
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	createdUser, err := h.userService.CreateUser(&user)
+	user := &model.User{Username: creds.Username, Password: creds.Password}
+	createdUser, err := h.userService.CreateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -38,13 +39,14 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 
 // AuthenticateUserHandler returns a handler for authenticating a user
 func (h *UserHandler) AuthenticateUserHandler(w http.ResponseWriter, r *http.Request) {
-	var credentials model.User
-	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
+	var creds model.Credentials
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	response, err := h.userService.AuthenticateUser(credentials)
+	user := model.User{Username: creds.Username, Password: creds.Password}
+	response, err := h.userService.AuthenticateUser(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return

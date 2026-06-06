@@ -1,6 +1,7 @@
 package user
 
 import (
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -29,7 +30,6 @@ func NewUserService(userRepo repository.UserStore) *UserServiceImpl {
 
 // CreateUser creates a new user
 func (s *UserServiceImpl) CreateUser(user *model.User) (*model.User, error) {
-	// Hash password before creating user
 	hashedPassword, err := s.HashPassword(user.Password)
 	if err != nil {
 		return nil, err
@@ -69,6 +69,11 @@ func (s *UserServiceImpl) AuthenticateUser(credentials model.User) (service.User
 	return response, nil
 }
 
+// GetUserByUsername finds a user by username
+func (s *UserServiceImpl) GetUserByUsername(username string) (*model.User, error) {
+	return s.userRepo.GetUserByUsername(username)
+}
+
 // HashPassword hashes a password using bcrypt
 func (s *UserServiceImpl) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -81,6 +86,14 @@ func (s *UserServiceImpl) CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
+func getJWTSecret() string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "your-secret-key"
+	}
+	return secret
+}
+
 // generateJWTToken generates a JWT token for the user
 func (s *UserServiceImpl) generateJWTToken(userID primitive.ObjectID) (string, error) {
 	claims := &jwt.StandardClaims{
@@ -90,5 +103,5 @@ func (s *UserServiceImpl) generateJWTToken(userID primitive.ObjectID) (string, e
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte("your-secret-key"))
+	return token.SignedString([]byte(getJWTSecret()))
 }

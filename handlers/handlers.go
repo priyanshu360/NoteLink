@@ -3,14 +3,20 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// Assume you have a constant for the JWT secret key
-const jwtSecret = "your-secret-key"
+func getJWTSecret() string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "your-secret-key"
+	}
+	return secret
+}
 
 func getUserIDFromToken(r *http.Request) (primitive.ObjectID, error) {
 	// Extract the Authorization header from the request
@@ -24,7 +30,7 @@ func getUserIDFromToken(r *http.Request) (primitive.ObjectID, error) {
 
 	// Parse the token
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(jwtSecret), nil
+		return []byte(getJWTSecret()), nil
 	})
 
 	if err != nil {

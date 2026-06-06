@@ -27,25 +27,33 @@ func NewMongoUserRepository(client *mongo.Client, databaseName, collectionName s
 	}
 }
 
+// GetUserByUsername finds a user by username
+func (repo *MongoUserRepository) GetUserByUsername(username string) (*model.User, error) {
+	collection := repo.client.Database(repo.databaseName).Collection(repo.collectionName)
+
+	var user model.User
+	err := collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 // CreateUser creates a new user in the database
 func (repo *MongoUserRepository) CreateUser(user *model.User) (*model.User, error) {
 	collection := repo.client.Database(repo.databaseName).Collection(repo.collectionName)
 
 	user.ID = primitive.NewObjectID()
 
-	// Hash password before storing
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-	user.Password = string(hashedPassword)
-
-	_, err = collection.InsertOne(context.TODO(), user)
+	_, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {
 		return nil, err
 	}
 
-	// Clear password from response
 	user.Password = ""
 	return user, nil
 }
@@ -60,19 +68,16 @@ func (repo *MongoUserRepository) AuthenticateUser(credentials model.User) (*mode
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			// User not found
 			return nil, errors.New("invalid credentials")
 		}
 		return nil, err
 	}
 
-	// Compare passwords
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
 	if err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
-	// Clear password from response
 	user.Password = ""
 	return &user, nil
 }

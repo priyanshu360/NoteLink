@@ -18,4 +18,5 @@ type NoteStore interface {
 type UserStore interface {
 	CreateUser(user *model.User) (*model.User, error)
 	AuthenticateUser(credentials model.User) (*model.User, error)
+	GetUserByUsername(username string) (*model.User, error)
 }

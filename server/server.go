@@ -45,48 +45,41 @@ func NewServer(cfg config.ServerConfig) *APIServer {
 	}
 }
 
-func initStore() repository.NoteStore {
-	mongoURL := "mongodb://localhost:27017"
+func connectMongo() (*mgo.Client, string) {
+	mongoURL := os.Getenv("MONGODB_URL")
+	if mongoURL == "" {
+		mongoURL = "mongodb://localhost:27017"
+	}
+
+	dbName := os.Getenv("DATABASE_NAME")
+	if dbName == "" {
+		dbName = "testdb"
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	dbName := "testdb"
-	collectionName := "notes"
 
 	client, err := mgo.Connect(ctx, options.Client().ApplyURI(mongoURL))
 	if err != nil {
 		log.Fatal("Error connecting to MongoDB: ", err)
 	}
 
-	// Ensure the client is connected
 	err = client.Ping(ctx, nil)
 	if err != nil {
 		log.Fatal("Error pinging MongoDB: ", err)
 	}
 
-	return mongo.NewMongoNoteStore(client, dbName, collectionName)
+	return client, dbName
+}
+
+func initStore() repository.NoteStore {
+	client, dbName := connectMongo()
+	return mongo.NewMongoNoteStore(client, dbName, "notes")
 }
 
 func initUserStore() repository.UserStore {
-	mongoURL := "mongodb://localhost:27017"
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	dbName := "testdb"
-	collectionName := "users"
-
-	client, err := mgo.Connect(ctx, options.Client().ApplyURI(mongoURL))
-	if err != nil {
-		log.Fatal("Error connecting to MongoDB: ", err)
-	}
-
-	// Ensure the client is connected
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal("Error pinging MongoDB: ", err)
-	}
-
-	return mongo.NewMongoUserRepository(client, dbName, collectionName)
+	client, dbName := connectMongo()
+	return mongo.NewMongoUserRepository(client, dbName, "users")
 }
 
 func (s *APIServer) initRoutesAndMiddleware() {
@@ -108,7 +101,7 @@ func (s *APIServer) initRoutesAndMiddleware() {
 
 	noteStore := initStore()
 	noteService := note.NewNoteService(noteStore)
-	noteHandler := handlers.NewNoteHandler(noteService)
+	noteHandler := handlers.NewNoteHandler(noteService, userService)
 
 	protectedRouter.HandleFunc("/notes", noteHandler.GetNotesHandler).Methods("GET")
 	protectedRouter.HandleFunc("/notes/{id}", noteHandler.GetNoteHandler).Methods("GET")
@@ -147,7 +140,11 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		// Parse and validate the token
 		token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-			return []byte("your-secret-key"), nil
+			secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			secret = "your-secret-key"
+		}
+		return []byte(secret), nil
 		})
 
 		if err != nil || !token.Valid {

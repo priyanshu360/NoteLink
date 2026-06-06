@@ -22,8 +22,8 @@ func NewServerConfig() ServerConfig {
 	}
 
 	return ServerConfig{
-		address:      getEnvWithDefault("SERVER_ADDRESS", "localhost"),
-		port:         getEnvWithDefault("SERVER_PORT", "8080"),
+		address:      getEnvWithDefault("SERVER_ADDRESS", "0.0.0.0"),
+		port:         getEnvWithDefault("SERVER_PORT", getEnvWithDefault("PORT", "8080")),
 		readTimeout:  rTimeout,
 		writeTimeout: wTimeout,
 	}

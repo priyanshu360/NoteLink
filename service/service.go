@@ -23,4 +23,5 @@ type UserLoginResponse struct {
 type UserService interface {
 	CreateUser(user *model.User) (*model.User, error)
 	AuthenticateUser(credentials model.User) (UserLoginResponse, error)
+	GetUserByUsername(username string) (*model.User, error)
 }
