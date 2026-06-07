@@ -9,7 +9,7 @@ import {
   IUserRegistration, 
   IUserCredentials 
 } from '../models/User';
-import { IAPIError, ErrorTypes } from '../models/APIResponse';
+
 
 // Action types with typing
 const AUTH_ACTIONS = {
@@ -184,6 +184,11 @@ const authReducer = (state: IAuthState, action: AuthAction): IAuthState => {
 
 // Create context
 const AuthContext = createContext<IAuthContext | undefined>(undefined);
+
+// Provider props interface
+interface IAuthProviderProps {
+  children?: ReactNode;
+}
 
 // Auth provider component
 export const AuthProvider: React.FC<IAuthProviderProps> = ({ children }) => {

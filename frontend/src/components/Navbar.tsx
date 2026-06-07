@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { INavbarProps } from '../types/components';
-import { useAuth } from '../contexts/AuthContext';
 import './Navbar.css';
 
 // Navbar component with TypeScript

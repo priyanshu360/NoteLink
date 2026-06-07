@@ -1,4 +1,8 @@
 // React component prop interfaces
+import React from 'react';
+import { IUser } from '../models/User';
+import { INote } from '../models/Note';
+import { IAPIError } from '../models/APIResponse';
 
 // Base component props
 export interface IBaseComponentProps {
@@ -21,14 +25,13 @@ export interface IErrorProps extends IBaseComponentProps {
 
 // Button component props
 export interface IButtonProps extends IBaseComponentProps {
-  type?: 'button' | 'submit' | 'reset';
+  type2?: 'button' | 'submit' | 'reset';
   variant?: 'primary' | 'secondary' | 'danger' | 'success';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  type?: 'button' | 'submit' | 'reset';
 }
 
 // Input component props
@@ -123,7 +126,7 @@ export interface INoteCardProps extends IBaseComponentProps {
 // Note form component props
 export interface INoteFormProps extends IBaseComponentProps {
   note?: INote;
-  onSubmit: (note: INoteCreation) => void;
+  onSubmit: (note: any) => void;
   onCancel: () => void;
   loading?: boolean;
   autoSave?: boolean;
@@ -190,7 +193,16 @@ export interface ISidebarProps extends IBaseComponentProps {
   overlay?: boolean;
 }
 
-// Import interfaces from models and API types
-import { IUser } from '../models/User';
-import { INote } from '../models/Note';
-import { IAPIError } from '../models/APIResponse';
+// Navbar component props
+export interface INavbarProps extends IBaseComponentProps {
+  user?: IUser | null;
+  onLogout?: () => void;
+  onLogin?: () => void;
+  showSearch?: boolean;
+  title?: string;
+}
+
+// Protected route props
+export interface IProtectedRouteProps extends IBaseComponentProps {
+  children?: React.ReactNode;
+}

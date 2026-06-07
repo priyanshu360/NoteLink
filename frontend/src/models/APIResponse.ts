@@ -70,12 +70,11 @@ export class APIResponse<T = any> implements IAPIResponse<T> {
   }
 
   // Create error response
-  static error(message: string = 'Operation failed'): APIResponse<never> {
-    return new APIResponse(false, undefined, message);
+  static error(message: string = 'Operation failed'): APIResponse<null> {
+    return new APIResponse<null>(false, null, message);
   }
 
-  // Create validation error response
-  static validationError(errors: string[]): APIResponse<never> {
+  static validationError(errors: string[]): APIResponse<null> {
     const message = errors.length === 1 
       ? errors[0] 
       : `${errors.length} validation errors occurred`;

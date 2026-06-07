@@ -74,27 +74,27 @@ export interface INoteFilters {
 // Note class implementing the interface
 export class Note implements INote {
   id: string;
-  userId: string;
+  user_id: string;
   title: string;
   content: string;
   shared: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
   tags: string[];
   color: string;
-  isPinned: boolean;
+  is_pinned: boolean;
 
   constructor(data: Partial<INote> = {}) {
     this.id = data.id || '';
-    this.userId = data.user_id || '';
+    this.user_id = data.user_id || '';
     this.title = data.title || '';
     this.content = data.content || '';
     this.shared = data.shared || false;
-    this.createdAt = data.created_at ? new Date(data.created_at) : new Date();
-    this.updatedAt = data.updated_at ? new Date(data.updated_at) : new Date();
+    this.created_at = data.created_at || new Date().toISOString();
+    this.updated_at = data.updated_at || new Date().toISOString();
     this.tags = data.tags || [];
     this.color = data.color || '#ffffff';
-    this.isPinned = data.is_pinned || false;
+    this.is_pinned = data.is_pinned || false;
   }
 
   // Get display title with fallback
@@ -112,9 +112,9 @@ export class Note implements INote {
   }
 
   // Get formatted date
-  getFormattedDate(dateField: 'createdAt' | 'updatedAt' = 'createdAt'): string {
+  getFormattedDate(dateField: 'created_at' | 'updated_at' = 'created_at'): string {
     const date = this[dateField];
-    return date.toLocaleDateString('en-US', {
+    return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -124,10 +124,10 @@ export class Note implements INote {
   }
 
   // Get relative time
-  getRelativeTime(dateField: 'createdAt' | 'updatedAt' = 'updatedAt'): string {
+  getRelativeTime(dateField: 'created_at' | 'updated_at' = 'updated_at'): string {
     const now = new Date();
-    const date = this[dateField];
-    const diffMs = now.getTime() - date.getTime();
+    const dateValue = this[dateField];
+    const diffMs = now.getTime() - new Date(dateValue).getTime();
     const diffSeconds = Math.floor(diffMs / 1000);
     const diffMinutes = Math.floor(diffSeconds / 60);
     const diffHours = Math.floor(diffMinutes / 60);
@@ -147,14 +147,14 @@ export class Note implements INote {
   // Check if note was recently updated
   isRecentlyUpdated(): boolean {
     const now = new Date();
-    const diffHours = (now.getTime() - this.updatedAt.getTime()) / (1000 * 60 * 60);
+    const diffHours = (now.getTime() - new Date(this.updated_at).getTime()) / (1000 * 60 * 60);
     return diffHours < 1;
   }
 
   // Check if note is new
   isNew(): boolean {
     const now = new Date();
-    const diffHours = (now.getTime() - this.createdAt.getTime()) / (1000 * 60 * 60);
+    const diffHours = (now.getTime() - new Date(this.created_at).getTime()) / (1000 * 60 * 60);
     return diffHours < 24;
   }
 
@@ -184,7 +184,7 @@ export class Note implements INote {
 
   // Check if note has been modified
   isModified(): boolean {
-    return this.updatedAt.getTime() > this.createdAt.getTime();
+    return new Date(this.updated_at).getTime() > new Date(this.created_at).getTime();
   }
 
   // Get note color for UI
@@ -199,7 +199,7 @@ export class Note implements INote {
 
   // Toggle pin status
   togglePin(): void {
-    this.isPinned = !this.isPinned;
+    this.is_pinned = !this.is_pinned;
   }
 
   // Add tag
@@ -266,8 +266,8 @@ export class Note implements INote {
     const cloned = new Note(this.toJSON());
     cloned.id = '';
     cloned.title = `${this.title} (Copy)`;
-    cloned.createdAt = new Date();
-    cloned.updatedAt = new Date();
+    cloned.created_at = new Date().toISOString();
+    cloned.updated_at = new Date().toISOString();
     return cloned;
   }
 
@@ -279,7 +279,7 @@ export class Note implements INote {
       tags: this.tags,
       color: this.color,
       shared: this.shared,
-      is_pinned: this.isPinned
+      is_pinned: this.is_pinned
     };
   }
 
@@ -291,7 +291,7 @@ export class Note implements INote {
       tags: this.tags,
       color: this.color,
       shared: this.shared,
-      is_pinned: this.isPinned
+      is_pinned: this.is_pinned
     };
   }
 
@@ -327,15 +327,15 @@ export class Note implements INote {
   toJSON(): INote {
     return {
       id: this.id,
-      user_id: this.userId,
+      user_id: this.user_id,
       title: this.title,
       content: this.content,
       shared: this.shared,
-      created_at: this.createdAt.toISOString(),
-      updated_at: this.updatedAt.toISOString(),
+      created_at: this.created_at,
+      updated_at: this.updated_at,
       tags: this.tags,
       color: this.color,
-      is_pinned: this.isPinned
+      is_pinned: this.is_pinned
     };
   }
 }

@@ -1,19 +1,16 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { IUser, IUserRegistration, IUserCredentials } from '../models/User';
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { SignupRequest, LoginRequest, AuthUser, LoginResponseData } from '../models/Auth';
 import { INote, INoteCreation, INoteUpdate, INoteFilters } from '../models/Note';
 import { 
   IAPIResponse, 
-  IAPIPagination, 
   IAPIError, 
   IAuthAPI, 
   INotesAPI, 
   IUtilsAPI,
-  ErrorTypes,
   APIError 
 } from '../types/api';
-import { IAPIConfig, IRequestConfig } from '../types/api';
+import { IAPIConfig } from '../types/api';
 
-// API Configuration
 const API_CONFIG: IAPIConfig = {
   baseURL: process.env.REACT_APP_API_URL || '/api',
   timeout: parseInt(process.env.REACT_APP_API_TIMEOUT || '10000'),
@@ -22,22 +19,16 @@ const API_CONFIG: IAPIConfig = {
   }
 };
 
-// Create axios instance with type safety
 const api: AxiosInstance = axios.create(API_CONFIG);
 
-// Request interceptor with typing
 api.interceptors.request.use(
-  (config: AxiosRequestConfig): AxiosRequestConfig => {
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     const token = localStorage.getItem('token');
     
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`
-      };
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Log request in development
     if (process.env.REACT_APP_DEBUG_API === 'true') {
       console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
         data: config.data,
@@ -105,7 +96,7 @@ api.interceptors.response.use(
           break;
 
         case 422:
-          apiError = APIError.validation(data.error || 'Validation failed', data.details || null);
+          apiError = APIError.validation(data.error || 'Validation failed');
           break;
 
         case 429:
@@ -120,7 +111,7 @@ api.interceptors.response.use(
           break;
 
         default:
-          apiError = APIError.serverError(`HTTP ${status} error`, status);
+          apiError = APIError.serverError(`HTTP ${status} error`);
       }
     }
 
@@ -131,20 +122,12 @@ api.interceptors.response.use(
 
 // Enhanced Authentication API implementation
 export const authAPI: IAuthAPI = {
-  signup: async (userData: IUserRegistration): Promise<IAPIResponse<{ user: IUser }>> => {
+  signup: async (userData: SignupRequest): Promise<IAPIResponse<{ user: AuthUser }>> => {
     try {
-      // Validate user data before sending
-      const user = new (await import('../models/User')).User(userData);
-      const validation = (user as any).validate?.();
-      
-      if (validation && !validation.isValid) {
-        throw APIError.validation(validation.errors);
-      }
+      const response = await api.post('/auth/signup', userData);
 
-      const response = await api.post<IAPIResponse<{ user: IUser }>>('/auth/signup', user.toJSON());
-      
       return {
-        data: response.data.data,
+        data: { user: response.data },
         success: true,
         message: 'User created successfully'
       };
@@ -153,20 +136,16 @@ export const authAPI: IAuthAPI = {
     }
   },
 
-  login: async (credentials: IUserCredentials): Promise<IAPIResponse<{ user: IUser; token: string }>> => {
+  login: async (credentials: LoginRequest): Promise<IAPIResponse<LoginResponseData>> => {
     try {
-      const response = await api.post<IAPIResponse<{ user: IUser; token: string }>>('/auth/login', credentials);
-      
-      // Extract user and token from response
-      const { user: userData, token } = response.data.data;
-      
-      // Validate token format
-      if (!token || typeof token !== 'string') {
+      const response = await api.post('/auth/login', credentials);
+
+      if (!response.data.token || typeof response.data.token !== 'string') {
         throw APIError.authentication('Invalid authentication response');
       }
 
       return {
-        data: { user: userData, token },
+        data: response.data,
         success: true,
         message: 'Login successful'
       };
@@ -214,14 +193,15 @@ export const notesAPI: INotesAPI = {
         }
       });
       
+      const notesData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       return {
-        data: response.data.data,
+        data: notesData,
         success: true,
         message: 'Notes retrieved successfully',
         pagination: {
           page: params.page || 1,
           limit: params.limit || 20,
-          total: response.headers['x-total-count'] || response.data.data.length,
+          total: response.headers['x-total-count'] || notesData.length,
           hasNext: false,
           hasPrev: false
         }
@@ -233,10 +213,10 @@ export const notesAPI: INotesAPI = {
 
   getById: async (id: string): Promise<IAPIResponse<INote>> => {
     try {
-      const response = await api.get<IAPIResponse<INote>>(`/notes/${id}`);
-      
+      const response = await api.get(`/notes/${id}`);
+      const noteData = response.data?.data || response.data;
       return {
-        data: response.data.data,
+        data: noteData,
         success: true,
         message: 'Note retrieved successfully'
       };
@@ -256,10 +236,11 @@ export const notesAPI: INotesAPI = {
         throw APIError.validation(validation.errors);
       }
 
-      const response = await api.post<IAPIResponse<INote>>('/notes', note.toJSON());
+      const response = await api.post('/notes', note.toJSON());
+      const createdNote = response.data?.data || response.data;
       
       return {
-        data: response.data.data,
+        data: createdNote,
         success: true,
         message: 'Note created successfully'
       };
@@ -278,10 +259,11 @@ export const notesAPI: INotesAPI = {
         throw APIError.validation(validation.errors);
       }
 
-      const response = await api.put<IAPIResponse<INote>>(`/notes/${id}`, note.toJSON());
+      const response = await api.put(`/notes/${id}`, note.toJSON());
+      const updatedNote = response.data?.data || response.data;
       
       return {
-        data: response.data.data,
+        data: updatedNote,
         success: true,
         message: 'Note updated successfully'
       };
@@ -304,10 +286,10 @@ export const notesAPI: INotesAPI = {
     }
   },
 
-  share: async (id: string, targetUserId: string): Promise<IAPIResponse<null>> => {
+  share: async (id: string, username: string): Promise<IAPIResponse<null>> => {
     try {
       await api.post(`/notes/${id}/share`, { 
-        target_user_id: targetUserId 
+        username 
       });
       
       return {
@@ -332,19 +314,18 @@ export const notesAPI: INotesAPI = {
         };
       }
 
-      const response = await api.get<IAPIResponse<INote[]>>('/search', { 
+      const response = await api.get('/search', { 
         params: {
           q: query.trim(),
-          page: params.page || 1,
-          limit: params.limit || parseInt(process.env.REACT_APP_MAX_SEARCH_RESULTS || '50'),
           ...params
         }
       });
+      const searchData = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       
       return {
-        data: response.data.data,
+        data: searchData,
         success: true,
-        message: `Found ${response.data.data.length} results`
+        message: `Found ${searchData.length} results`
       };
     } catch (error) {
       throw error;

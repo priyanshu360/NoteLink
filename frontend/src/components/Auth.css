@@ -119,3 +119,23 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.form-input.input-error {
+  border-color: #dc3545;
+}
+
+.form-input.input-error:focus {
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+}
+
+.field-error {
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.password-match-ok {
+  color: #28a745;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
