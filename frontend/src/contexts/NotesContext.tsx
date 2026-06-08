@@ -1,12 +1,11 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { 
   INotesState, 
   INotesActions, 
   INotesContext 
 } from '../types/context';
-import { INote, INoteCreation, INoteUpdate, INoteFilters } from '../models/Note';
-import { INotePagination } from '../types/api';
-import { IAPIError, ErrorTypes } from '../models/APIResponse';
+import { INote, INoteCreation, INoteUpdate } from '../models/Note';
+import { IAPIError, APIError } from '../models/APIResponse';
 
 // Action types
 const NOTES_ACTIONS = {
@@ -319,6 +318,11 @@ const notesReducer = (state: INotesState, action: NotesAction): INotesState => {
 // Create context
 const NotesContext = createContext<INotesContext | undefined>(undefined);
 
+// Provider props interface
+interface INotesProviderProps {
+  children?: ReactNode;
+}
+
 // Notes provider component
 export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(notesReducer, initialState);
@@ -339,10 +343,9 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
 
         return response.data;
       } catch (error: any) {
-        const apiError: IAPIError = new ErrorTypes.NETWORK_ERROR(
-          error.response?.data?.error || error.message || 'Failed to fetch notes',
-          error.response?.status
-        ) as any;
+        const apiError: IAPIError = APIError.networkError(
+          error.response?.data?.error || error.message || 'Failed to fetch notes'
+        );
 
         dispatch({
           type: NOTES_ACTIONS.FETCH_FAILURE,
@@ -363,11 +366,9 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
         const validation = note.validate();
         
         if (!validation.isValid) {
-          const apiError: IAPIError = new ErrorTypes.VALIDATION_ERROR(
-            validation.errors.join(', '),
-            422,
+          const apiError: IAPIError = APIError.validation(
             validation.errors
-          ) as any;
+          );
 
           dispatch({
             type: NOTES_ACTIONS.CREATE_FAILURE,
@@ -387,10 +388,9 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
 
         return response.data;
       } catch (error: any) {
-        const apiError: IAPIError = new ErrorTypes.VALIDATION_ERROR(
-          error.response?.data?.error || error.message || 'Failed to create note',
-          error.response?.status
-        ) as any;
+        const apiError: IAPIError = APIError.networkError(
+          error.response?.data?.error || error.message || 'Failed to create note'
+        );
 
         dispatch({
           type: NOTES_ACTIONS.CREATE_FAILURE,
@@ -410,11 +410,9 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
         const validation = note.validate();
         
         if (!validation.isValid) {
-          const apiError: IAPIError = new ErrorTypes.VALIDATION_ERROR(
-            validation.errors.join(', '),
-            422,
+          const apiError: IAPIError = APIError.validation(
             validation.errors
-          ) as any;
+          );
 
           dispatch({
             type: NOTES_ACTIONS.UPDATE_FAILURE,
@@ -434,10 +432,9 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
 
         return response.data;
       } catch (error: any) {
-        const apiError: IAPIError = new ErrorTypes.VALIDATION_ERROR(
-          error.response?.data?.error || error.message || 'Failed to update note',
-          error.response?.status
-        ) as any;
+        const apiError: IAPIError = APIError.networkError(
+          error.response?.data?.error || error.message || 'Failed to update note'
+        );
 
         dispatch({
           type: NOTES_ACTIONS.UPDATE_FAILURE,
@@ -462,10 +459,9 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
 
         return true;
       } catch (error: any) {
-        const apiError: IAPIError = new ErrorTypes.NETWORK_ERROR(
-          error.response?.data?.error || error.message || 'Failed to delete note',
-          error.response?.status
-        ) as any;
+        const apiError: IAPIError = APIError.networkError(
+          error.response?.data?.error || error.message || 'Failed to delete note'
+        );
 
         dispatch({
           type: NOTES_ACTIONS.DELETE_FAILURE,
@@ -497,10 +493,9 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
 
         return response.data;
       } catch (error: any) {
-        const apiError: IAPIError = new ErrorTypes.NETWORK_ERROR(
-          error.response?.data?.error || error.message || 'Search failed',
-          error.response?.status
-        ) as any;
+        const apiError: IAPIError = APIError.networkError(
+          error.response?.data?.error || error.message || 'Search failed'
+        );
 
         dispatch({
           type: NOTES_ACTIONS.SEARCH_FAILURE,
@@ -559,19 +554,19 @@ export const NotesProvider: React.FC<INotesProviderProps> = ({ children }) => {
     notes.sort((a: INote, b: INote) => {
       switch (state.sortBy) {
         case 'updated_asc':
-          return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
         case 'updated_desc':
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
         case 'created_asc':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case 'created_desc':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'title_asc':
           return a.title.localeCompare(b.title);
         case 'title_desc':
           return b.title.localeCompare(a.title);
         default:
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       }
     });
 
