@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/priyanshu360/NoteLink/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -35,20 +36,9 @@ func ValidateJWT(tokenString string) (*jwt.StandardClaims, error) {
 	return claims, nil
 }
 
-// ErrorResponse represents a standardized error response
-type ErrorResponse struct {
-	Error   string `json:"error"`
-	Message string `json:"message,omitempty"`
-	Code    int    `json:"code"`
-}
-
-// WriteErrorResponse writes a standardized error response
-func WriteErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+// WriteJSONError writes a standardized JSON error response
+func WriteJSONError(w http.ResponseWriter, apiErr *model.APIError) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(ErrorResponse{
-		Error:   http.StatusText(statusCode),
-		Message: message,
-		Code:    statusCode,
-	})
+	w.WriteHeader(apiErr.Status)
+	json.NewEncoder(w).Encode(apiErr)
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/service"
+	"github.com/priyanshu360/NoteLink/utils"
 )
 
 // UserHandler provides HTTP handlers for user-related operations
@@ -22,14 +23,14 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var creds model.Credentials
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, err.Error()))
 		return
 	}
 
 	user := &model.User{Username: creds.Username, Password: creds.Password}
 	createdUser, err := h.userService.CreateUser(user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
 	}
 
@@ -41,14 +42,14 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 func (h *UserHandler) AuthenticateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var creds model.Credentials
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, err.Error()))
 		return
 	}
 
 	user := model.User{Username: creds.Username, Password: creds.Password}
 	response, err := h.userService.AuthenticateUser(user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, err.Error()))
 		return
 	}
 

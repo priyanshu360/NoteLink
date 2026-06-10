@@ -14,10 +14,12 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/priyanshu360/NoteLink/config"
 	"github.com/priyanshu360/NoteLink/handlers"
+	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/repository"
 	"github.com/priyanshu360/NoteLink/repository/mongo"
 	"github.com/priyanshu360/NoteLink/service/note"
 	"github.com/priyanshu360/NoteLink/service/user"
+	"github.com/priyanshu360/NoteLink/utils"
 	mgo "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/time/rate"
@@ -117,7 +119,7 @@ func (s *APIServer) initRoutesAndMiddleware() {
 func RateLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !rateLimit.Allow() {
-			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			utils.WriteJSONError(w, model.NewAPIError(http.StatusTooManyRequests, "Rate limit exceeded"))
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -129,7 +131,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := r.Header.Get("Authorization")
 		if tokenString == "" {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 			return
 		}
 
@@ -148,7 +150,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		})
 
 		if err != nil || !token.Valid {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 			return
 		}
 

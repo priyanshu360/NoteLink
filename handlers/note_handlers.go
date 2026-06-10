@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/priyanshu360/NoteLink/model"
 	"github.com/priyanshu360/NoteLink/service"
+	"github.com/priyanshu360/NoteLink/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -25,13 +26,13 @@ func NewNoteHandler(noteService service.NoteService, userService service.UserSer
 func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 		return
 	}
 
 	notes, err := h.noteService.GetAllNotes(userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
 	}
 
@@ -43,20 +44,20 @@ func (h *NoteHandler) GetNotesHandler(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 		return
 	}
 
 	params := mux.Vars(r)
 	noteID, err := primitive.ObjectIDFromHex(params["id"])
 	if err != nil {
-		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, "Invalid note ID"))
 		return
 	}
 
 	note, err := h.noteService.GetNoteByID(noteID, userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, err.Error()))
 		return
 	}
 
@@ -68,20 +69,20 @@ func (h *NoteHandler) GetNoteHandler(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 		return
 	}
 
 	var note model.Note
 	if err := json.NewDecoder(r.Body).Decode(&note); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, err.Error()))
 		return
 	}
 
 	note.UserID = userID
 	err = h.noteService.CreateNote(&note)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
 	}
 
@@ -94,27 +95,27 @@ func (h *NoteHandler) CreateNoteHandler(w http.ResponseWriter, r *http.Request) 
 func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 		return
 	}
 
 	params := mux.Vars(r)
 	noteID, err := primitive.ObjectIDFromHex(params["id"])
 	if err != nil {
-		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, "Invalid note ID"))
 		return
 	}
 
 	var updatedNote model.Note
 	if err := json.NewDecoder(r.Body).Decode(&updatedNote); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, err.Error()))
 		return
 	}
 
 	// Ensure that the note belongs to the authenticated user
 	existingNote, err := h.noteService.GetNoteByID(noteID, userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, err.Error()))
 		return
 	}
 
@@ -124,7 +125,7 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 
 	err = h.noteService.UpdateNote(existingNote)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
 	}
 
@@ -136,20 +137,20 @@ func (h *NoteHandler) UpdateNoteHandler(w http.ResponseWriter, r *http.Request) 
 func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 		return
 	}
 
 	params := mux.Vars(r)
 	noteID, err := primitive.ObjectIDFromHex(params["id"])
 	if err != nil {
-		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, "Invalid note ID"))
 		return
 	}
 
 	err = h.noteService.DeleteNote(noteID, userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, err.Error()))
 		return
 	}
 
@@ -160,14 +161,14 @@ func (h *NoteHandler) DeleteNoteHandler(w http.ResponseWriter, r *http.Request) 
 func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 		return
 	}
 
 	params := mux.Vars(r)
 	noteID, err := primitive.ObjectIDFromHex(params["id"])
 	if err != nil {
-		http.Error(w, "Invalid note ID", http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, "Invalid note ID"))
 		return
 	}
 
@@ -177,7 +178,7 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&shareRequest); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, err.Error()))
 		return
 	}
 
@@ -186,21 +187,21 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 	if shareRequest.Username != "" {
 		targetUser, err := h.userService.GetUserByUsername(shareRequest.Username)
 		if err != nil {
-			http.Error(w, "Target user not found", http.StatusNotFound)
+			utils.WriteJSONError(w, model.NewAPIError(http.StatusNotFound, "Target user not found"))
 			return
 		}
 		targetUserID = targetUser.ID
 	} else {
 		targetUserID, err = primitive.ObjectIDFromHex(shareRequest.TargetUserID)
 		if err != nil {
-			http.Error(w, "Invalid target user ID", http.StatusBadRequest)
+			utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, "Invalid target user ID"))
 			return
 		}
 	}
 
 	err = h.noteService.ShareNoteWithUser(noteID, userID, targetUserID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
 	}
 
@@ -211,19 +212,19 @@ func (h *NoteHandler) ShareNoteHandler(w http.ResponseWriter, r *http.Request) {
 func (h *NoteHandler) SearchNotesHandler(w http.ResponseWriter, r *http.Request) {
 	userID, err := getUserIDFromToken(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusUnauthorized, "Unauthorized"))
 		return
 	}
 
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		http.Error(w, "Query parameter 'q' is required", http.StatusBadRequest)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusBadRequest, "Query parameter 'q' is required"))
 		return
 	}
 
 	notes, err := h.noteService.SearchNotes(userID, query)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteJSONError(w, model.NewAPIError(http.StatusInternalServerError, err.Error()))
 		return
 	}
 
